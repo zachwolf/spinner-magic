@@ -1,0 +1,11 @@
+{
+  "name": "spinner-magic",
+  "version": "1.0.0",
+  "description": "trying to make a cool animation",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
