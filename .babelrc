@@ -1,0 +1,8 @@
+{
+	"sourceMap": "inline",
+  "presets": ["es2015"],
+  "ignore": [
+    "foo.js",
+    "bar/**/*.js"
+  ]
+}
