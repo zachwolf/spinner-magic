@@ -1,6 +1,9 @@
 'use strict'
 
 import curry from 'es5/helpers/curry'
+import cache from 'es5/helpers/cache'
+import MethodChain from 'es5/helpers/MethodChain'
+import { toHundredth, noNaN, getRadians } from 'es5/helpers/math'
 
 let Shape = function () {
   if (!(this instanceof Shape)) {
@@ -293,104 +296,4 @@ Shape.proto.stopCrawl = function () {
   return this
 }
 
-
-// **********************************
-
-let noNaN = (val) => {
-  if (Number.isNaN(val)) {
-    console.log('got NaN')
-  }
-  return Number.isNaN(val) ? 0 : val
-}
-
-// get the amount of radians from 0
-// to the given point on a circle
-let getRadians = (center, point, debug) => {
-  let [cx, cy] = center
-    , [px, py] = point
-    , opposite = Math.abs(cy - py)
-    , adjacent = Math.abs(cx - px)
-    , res
-
-  if (py >= cy) { // below center point
-
-    if (px >= cx) { // right of center point
-      res = noNaN(Math.atan(opposite / adjacent))
-    } else { // left of center point
-      res = Math.PI - noNaN(Math.atan(opposite / adjacent))
-    }
-
-  } else { // about center point
-    // let opposite = Math.abs(cy - py)
-    //   , adjacent = Math.abs(cx - px)
-    
-    if (px >= cx) { // right of center point
-      res = Math.PI * 1.5 + noNaN(Math.asin(opposite / adjacent))
-    } else { // left of center point
-      res = Math.PI + noNaN(Math.sin(opposite / adjacent))
-      
-      // if (debug) {
-      //   setTimeout(() => {      
-      //     shape.context
-      //       .set('fillStyle', '#1A66ED')
-      //       .fillRect(...center, 5, 5)
-      //       .set('fillStyle', '#1A66ED')
-      //       .fillRect(...point, 5, 5)
-      //       .beginPath()
-      //       .arc(...center, debug.distBetween, 0, Math.sin(opposite / adjacent) + Math.PI)
-      //       .stroke()
-      //       .closePath()
-      //   }, 500)
-      // }
-    }
-  }
-
-  return res
-}
-
-function toHundredth (number) {
-  return Math.round(number * 100) / 100
-}
-
-function cache (fn, buster) {
-  let res = null
-
-  return function (...args) {
-    if (buster.call(this, ...args, res)) {
-      res = fn.call(this, ...args, res)
-    }
-    
-    return res
-  }
-}
-
-function MethodChain (obj) {
-  if (!(this instanceof MethodChain)) {
-    return new MethodChain(...arguments)
-  }
-  
-  this.obj = obj
-  
-  for (let method in obj) {
-    if (typeof obj[method] === 'function') {
-      this[method] = (...args) => {
-        this.obj[method](...args)
-        return this
-      }
-    }
-  }
-}
-
-MethodChain.prototype.set = function (prop, val) {
-  this.obj[prop] = val
-  return this
-}
-
-
-// **************************
-
-
-let shape = new Shape(document.querySelector('#hex'), {})
-
-shape.startCrawl()
-  .stopCrawl()
+export default Shape
