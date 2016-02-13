@@ -1,5 +1,7 @@
 'use strict'
 
+import curry from 'es5/helpers/curry'
+
 let Shape = function () {
   if (!(this instanceof Shape)) {
     return new Shape(...arguments)
@@ -17,8 +19,8 @@ Shape.proto.init = function (el, options) {
   
   // store configuration with defaults
   this.options = Object.assign({
-    pointCount: 8
-  }, options) 
+    pointCount: 6
+  }, options)
   
   // store relevant size/position
   this.cacheMATHS()
@@ -359,12 +361,6 @@ function cache (fn, buster) {
     }
     
     return res
-  }
-}
-
-function curry (fn, ...alwaysArgs) {
-  return (...sometimesArgs) => {
-    return fn(...alwaysArgs, ...sometimesArgs)
   }
 }
 

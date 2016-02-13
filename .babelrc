@@ -1,8 +1,6 @@
 {
 	"sourceMap": "inline",
   "presets": ["es2015"],
-  "ignore": [
-    "foo.js",
-    "bar/**/*.js"
-  ]
+  "plugins": ["transform-es2015-modules-amd"],
+  "ignore": []
 }
