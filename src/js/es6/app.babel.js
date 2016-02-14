@@ -3,6 +3,7 @@
 import curry from 'es5/helpers/curry'
 import cache from 'es5/helpers/cache'
 import MethodChain from 'es5/helpers/MethodChain'
+// import { toHundredth, noNaN, getRadians } from 'es5/helpers/math'
 import { toHundredth, noNaN, getRadians } from 'es5/helpers/math'
 
 let Shape = function () {
@@ -34,6 +35,9 @@ Shape.proto.init = function (el, options) {
   // functions that are wrapped in helper functions
   // lose their scope
   this.bindScope()
+
+  // bind canvas-related events
+  this.bindEvents()
   
   return this
 }
@@ -42,6 +46,21 @@ Shape.proto.bindScope = function () {
   this.getState = this.getState.bind(this)
 
   return this
+}
+
+Shape.proto.bindEvents = function () {
+
+	window.addEventListener('resize', () => {
+		let wasDrawing = this.__allowDraw
+		if (wasDrawing) this.stopCrawl()
+
+		this.setStageSize()
+				.cacheMATHS()
+				.startCrawl()
+
+		if (!wasDrawing) this.stopCrawl()
+	})
+
 }
 
 Shape.proto.setStageSize = function () {
@@ -81,7 +100,6 @@ Shape.proto.cacheMATHS = function () {
     , to = points[2]
     , fromRadians = getRadians(center, from)
     , toRadians = getRadians(center, to, {distBetween})
-  // XXX
     , radiansBetween = Math.abs(toRadians - fromRadians) - fromRadians
 
   this.MATHS = {
@@ -138,39 +156,51 @@ Shape.proto.drawDebug = function (state) {
     state = this.getState()
   }
   
-  points.forEach( (point, key) => {
-      this.context
-        // unmoved path
-        .beginPath()
-        // .set('strokeStyle', '#DEFACE') 
-        // .moveTo(...state.pivot)
-        // .lineTo(...state.to)
-        // .moveTo(...state.pivot)
-        // .lineTo(...state.from)
-        // .stroke()
-        // debugging
-        .set('strokeStyle', '#fe11a5') 
-        .beginPath()
-        .arc(...point, r, 0, 2 * Math.PI)
-        .closePath()
-        .stroke()
+  // points.forEach( (point, key) => {
+  //     this.context
+  //       // unmoved path
+  //       .beginPath()
+  //       // debugging angles
+  //       .set('strokeStyle', '#DEFACE') 
+  //       .moveTo(...state.pivot)
+  //       .lineTo(...state.to)
+  //       .moveTo(...state.pivot)
+  //       .lineTo(...state.from)
+  //       // .stroke()
+  //       .closePath()
+  //       // debugging positions
+  //       .set('strokeStyle', '#fe11a5') 
+  //       .beginPath()
+  //       .arc(...point, r, 0, 2 * Math.PI)
+  //       .closePath()
+  //       .stroke()
+  // })
+
+	let _circleAndFrom = (_state) => {
+	  // this.context
+	  //   // debugging
+	  //   .set('strokeStyle', '#fe11a5') 
+	  //   .beginPath()
+	  //   .arc(..._state.pivot, r, 0, 2 * Math.PI)
+	  //   .closePath()
+	  //   .stroke()
+
+    this.drawLine(_state)
+	}
+
+	_circleAndFrom(state)
+
+  this.stage.addEventListener('click', () => {
+  	state = this.getState(null, state)
+
+		_circleAndFrom(state)
   })
 
-  // this.context
-  //   // unmoved path
-  //   .beginPath()
-  //   .set('strokeStyle', '#DEFACE') 
-  //   .moveTo(...state.pivot)
-  //   .lineTo(...state.to)
-  //   .moveTo(...state.pivot)
-  //   .lineTo(...state.from)
-  //   .stroke()
-  //   // debugging
-  //   .set('strokeStyle', '#fe11a5') 
-  //   .beginPath()
-  //   .arc(...state.pivot, r, 0, 2 * Math.PI)
-  //   .closePath()
-  //   .stroke()
+	/*points.reduce((prevState, next) => {
+		_circleAndFrom(prevState)
+		return this.getState(null, prevState)
+	}, this.getState(null, state))*/
+
 
   return this
 }
@@ -184,7 +214,10 @@ Shape.proto.drawLine = function (state, counter) {
   let { spaceBetweenPoints: r, radiansBetween } = this.MATHS
     , { pivot, from } = state
     , [ pivotx, pivoty ] = pivot
-    , fromRadians = getRadians(pivot, from)
+    , fromRadians = getRadians(pivot, from, {
+    		context: this.context
+	    })
+    // , fromRadians = getRadians(pivot, from)
     // , toRadians   = getRadians(pivot, to)
     , radiansDiff = radiansBetween * counter
     
@@ -214,7 +247,7 @@ Shape.proto.drawLine = function (state, counter) {
 
 
 Shape.proto.getState = cache(function (counter, prev) {
-  let { index: prevIndex } = prev || { index: 2 }
+  let { index: prevIndex } = prev || { index: 1 }
     , { points } = this.MATHS
     , indexOverflow = curry((mod, i) => {
         return i % mod
@@ -236,7 +269,7 @@ Shape.proto.getState = cache(function (counter, prev) {
     to
   }
 }, function (counter, prev) {
-  return !prev || counter >= 1
+  return !prev || !counter || counter >= 1
 })
 
 
@@ -279,7 +312,7 @@ Shape.proto.startCrawl = function () {
   
   this.__allowDraw = true
   
-  this.stage.addEventListener('click', curry(_loop, .1))
+  // this.stage.addEventListener('click', curry(_loop, .1))
   
   // _loop()
   
