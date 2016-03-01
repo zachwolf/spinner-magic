@@ -1,10 +1,12 @@
 'use strict'
 
+import CONFIG from 'es5/config'
+
 import curry from 'es5/helpers/curry'
 import cache from 'es5/helpers/cache'
 import MethodChain from 'es5/helpers/MethodChain'
-// import { toHundredth, noNaN, getRadians } from 'es5/helpers/math'
 import { toHundredth, noNaN, getRadians } from 'es5/helpers/math'
+import { default as __counter } from 'es5/helpers/counter'
 
 let Shape = function () {
   if (!(this instanceof Shape)) {
@@ -17,13 +19,21 @@ let Shape = function () {
 Shape.proto = Shape.prototype
 
 Shape.proto.init = function (el, options) {
+	// set up private counter
+	__counter(this).config({
+		increment: CONFIG.COUNTER_INCREMENT,
+		incrementFn: (value, inc) => {
+			return toHundredth(value + inc)
+		}
+	})
+
   // store canvas reference
   this.stage = el
   this.context = new MethodChain(this.stage.getContext('2d'))
   
   // store configuration with defaults
   this.options = Object.assign({
-    pointCount: 6
+    pointCount: CONFIG.POINT_COUNT
   }, options)
   
   // store relevant size/position
@@ -60,7 +70,6 @@ Shape.proto.bindEvents = function () {
 
 		if (!wasDrawing) this.stopCrawl()
 	})
-
 }
 
 Shape.proto.setStageSize = function () {
@@ -149,58 +158,24 @@ Shape.proto.drawBackground = function () {
   return this
 }
 
-Shape.proto.drawDebug = function (state) {
-  let { spaceBetweenPoints: r, radiansBetween, points } = this.MATHS
-  
-  if (!state) {
-    state = this.getState()
-  }
-  
-  // points.forEach( (point, key) => {
-  //     this.context
-  //       // unmoved path
-  //       .beginPath()
-  //       // debugging angles
-  //       .set('strokeStyle', '#DEFACE') 
-  //       .moveTo(...state.pivot)
-  //       .lineTo(...state.to)
-  //       .moveTo(...state.pivot)
-  //       .lineTo(...state.from)
-  //       // .stroke()
-  //       .closePath()
-  //       // debugging positions
-  //       .set('strokeStyle', '#fe11a5') 
-  //       .beginPath()
-  //       .arc(...point, r, 0, 2 * Math.PI)
-  //       .closePath()
-  //       .stroke()
-  // })
+Shape.proto.drawDebug = function (state, counter) {
+	// console.log('drawDebug');
 
-	let _circleAndFrom = (_state) => {
-	  // this.context
-	  //   // debugging
-	  //   .set('strokeStyle', '#fe11a5') 
-	  //   .beginPath()
-	  //   .arc(..._state.pivot, r, 0, 2 * Math.PI)
-	  //   .closePath()
-	  //   .stroke()
+	let { spaceBetweenPoints: r, radiansBetween } = this.MATHS
+    , { pivot, from } = state
+    , [ pivotx, pivoty ] = pivot
+    , fromRadians = getRadians(pivot, from)
+    , radiansDiff = radiansBetween * counter
 
-    this.drawLine(_state)
-	}
+    
+  this.context
+    .set('strokeStyle', '#DA66A5')
+    .beginPath()
+    .arc(...pivot, r, 0, radiansBetween)
+    .stroke()
+    .closePath()
 
-	_circleAndFrom(state)
-
-  this.stage.addEventListener('click', () => {
-  	state = this.getState(null, state)
-
-		_circleAndFrom(state)
-  })
-
-	/*points.reduce((prevState, next) => {
-		_circleAndFrom(prevState)
-		return this.getState(null, prevState)
-	}, this.getState(null, state))*/
-
+  return this
 
   return this
 }
@@ -214,16 +189,20 @@ Shape.proto.drawLine = function (state, counter) {
   let { spaceBetweenPoints: r, radiansBetween } = this.MATHS
     , { pivot, from } = state
     , [ pivotx, pivoty ] = pivot
-    , fromRadians = getRadians(pivot, from, {
-    		context: this.context
-	    })
-    // , fromRadians = getRadians(pivot, from)
+    // , fromRadians = getRadians(pivot, from, {
+    // 		context: this.context
+	   //  })
+    , fromRadians = getRadians(pivot, from)
     // , toRadians   = getRadians(pivot, to)
     , radiansDiff = radiansBetween * counter
+
+  console.log(radiansBetween, counter, radiansDiff);
     
   if (counter >= 1) {
     radiansDiff = 0
   }
+
+  // console.log(state);
 
   let _endPoint = [
     // next steps: from res and to res should be on expexted lines
@@ -234,7 +213,7 @@ Shape.proto.drawLine = function (state, counter) {
   this.context
     .set('strokeStyle', '#FEEB1E')
     .beginPath()
-    .moveTo(...state.pivot)
+    .moveTo(...pivot)
     .lineTo(..._endPoint)
     .closePath()
     .stroke()
@@ -247,7 +226,7 @@ Shape.proto.drawLine = function (state, counter) {
 
 
 Shape.proto.getState = cache(function (counter, prev) {
-  let { index: prevIndex } = prev || { index: 1 }
+  let { index: prevIndex } = prev || { index: CONFIG.STATE_INDEX }
     , { points } = this.MATHS
     , indexOverflow = curry((mod, i) => {
         return i % mod
@@ -260,7 +239,7 @@ Shape.proto.getState = cache(function (counter, prev) {
     , from  = pointsOverflow(index)
     , to    = pointsOverflow(index + 2)
   
-  this.resetCounter()
+  __counter(this).reset()
 
   return {
     index,
@@ -268,41 +247,18 @@ Shape.proto.getState = cache(function (counter, prev) {
     from,
     to
   }
-}, function (counter, prev) {
-  return !prev || !counter || counter >= 1
+}, (counter, prev, __force) => {
+	return counter >= 1
 })
-
-
-Shape.proto.resetCounter = function () {
-  this.__counter = 0
-  return this
-}
-
-Shape.proto.getAndIncreaseCounter = function (inc) {
-  if (!(typeof this.__counter === 'number')) {
-    this.__counter = 0
-  }
-  
-  console.log(inc)
-
-  this.__counter = toHundredth(this.__counter + (inc || 0.01))
-
-  return this.__counter
-}
-
-
-
 
 Shape.proto.startCrawl = function () {
   let _loop = (inc) => {
-    let counter = this.getAndIncreaseCounter(inc)
-      , state = this.getState(counter)
+    let counter = __counter(this).increment()
+      , state   = this.getState(counter)
 
-    // console.log('looped', state)
-  
     this.drawBackground()
-    this.drawPositions()
-    this.drawDebug(state)
+    // this.drawPositions()
+    this.drawDebug(state, counter)
     this.drawLine(state, counter)
     
     if (this.__allowDraw) {
@@ -312,14 +268,8 @@ Shape.proto.startCrawl = function () {
   
   this.__allowDraw = true
   
-  // this.stage.addEventListener('click', curry(_loop, .1))
-  
-  // _loop()
-  
-  this.drawBackground()
-  this.drawPositions()
-  this.drawDebug()  
-  
+  _loop()
+    
   return this
 }
 

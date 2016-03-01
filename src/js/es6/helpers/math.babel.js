@@ -2,6 +2,9 @@ import MethodChain from 'es5/helpers/methodChain'
 import { get } from 'es5/helpers/object'
 
 export function toHundredth(number) {
+  if (Math.abs(number) < 0.01 && Math.abs(number) > 0) {
+    console.warn('`toHundredth` is not intended for numbers less than +-.01')
+  }
   return Math.round(number * 100) / 100
 }
 
